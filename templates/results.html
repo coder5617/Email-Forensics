@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Header Analyzed</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Header Analyzed</h1>
+
+        <h2>Delivery Information</h2>
+        <ul>
+            <li>DMARC Compliant: {% if dmarc_compliant %}<span class="green">✅</span>{% else %}<span class="red">❌</span>{% endif %}</li>
+            <li>SPF Alignment: {% if spf_aligned %}<span class="green">✅</span>{% else %}<span class="red">❌</span>{% endif %}</li>
+            <li>SPF Authenticated: {% if spf_authenticated %}<span class="green">✅</span>{% else %}<span class="red">❌</span>{% endif %}</li>
+            <li>DKIM Alignment: {% if dkim_aligned %}<span class="green">✅</span>{% else %}<span class="red">❌</span>{% endif %}</li>
+            <li>DKIM Authenticated: {% if dkim_authenticated %}<span class="green">✅</span>{% else %}<span class="red">❌</span>{% endif %}</li>
+        </ul>
+
+        <h2>Relay Information</h2>
+        <p>Received: {{ total_delay }} seconds</p>
+
+        <div class="relay-graph">
+            <div class="ip-info">
+                {% if sender_ip %}
+                <h3>Sender IP Info ({{ sender_ip }})</h3>
+                {% if 'error' in ip_info %}
+                <p>{{ ip_info.error }} {% if 'status' in ip_info %}(status: {{ ip_info.status }}){% endif %}</p>
+                {% else %}
+                <ul>
+                    {% for key, value in ip_info.items() %}
+                    <li>{{ key }}: {{ value }}</li>
+                    {% endfor %}
+                </ul>
+                {% endif %}
+                {% else %}
+                <p>No valid sender IP found.</p>
+                {% endif %}
+            </div>
+            <div class="bar-container">
+                <div class="bar">
+                    {% set max_delay = relays|map(attribute='delay')|max %}
+                    {% for relay in relays|reverse %}
+                    <div class="bar-segment" style="width: {{ (relay.delay / max_delay * 100) if max_delay > 0 else 0 }}%;"
+                         title="Hop {{ relay.hop }}: {{ relay.delay }}s"></div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Hop</th>
+                    <th>Delay</th>
+                    <th>From</th>
+                    <th>By</th>
+                    <th>With</th>
+                    <th>Time (UTC)</th>
+                    <th>Blacklist</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for relay in relays %}
+                <tr>
+                    <td>{{ relay.hop }}</td>
+                    <td>{{ relay.delay }}s</td>
+                    <td>{{ relay.from }}</td>
+                    <td>{{ relay.by }}</td>
+                    <td>{{ relay.with }}</td>
+                    <td>{{ relay.time }}</td>
+                    <td>{% if relay.blacklist %}<span class="green">✅</span>{% else %}<span class="red">❌</span>{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <h2>SPF and DKIM Information</h2>
+        {% if dmarc_txt %}
+        <div class="info-box {% if dmarc_status == 'pass' %}green-bg{% else %}red-bg{% endif %}">{{ dmarc_txt }}</div>
+        {% endif %}
+        {% if spf_txt %}
+        <div class="info-box {% if spf_status == 'pass' %}green-bg{% else %}red-bg{% endif %}">{{ spf_txt }}</div>
+        {% endif %}
+        {% if dkim_status != 'pass' %}
+        <div class="info-box red-bg">DKIM Signature Error: {{ dkim_info }}</div>
+        {% endif %}
+
+        <h2>Headers Found</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Header Name</th>
+                    <th>Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for name, value in headers_found.items() %}
+                <tr>
+                    <td>{{ name }}</td>
+                    <td>{{ value }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

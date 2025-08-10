@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Email Header Analyzer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Email Header Analyzer</h1>
+        <form method="post">
+            <label for="header">Paste Header:</label><br>
+            <textarea id="header" name="header" rows="10" cols="100"></textarea><br>
+            <input type="submit" value="Analyze Header">
+        </form>
+    </div>
+</body>
+</html>

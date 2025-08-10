@@ -1,0 +1,96 @@
+body {
+    background-color: #121212;
+    color: #ffffff;
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+h1, h2 {
+    color: #ffffff;
+}
+
+textarea {
+    background-color: #1e1e1e;
+    color: #ffffff;
+    border: 1px solid #333;
+}
+
+input[type="submit"] {
+    background-color: #ff9800;
+    color: #000000;
+    border: none;
+    padding: 10px;
+    cursor: pointer;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+}
+
+th, td {
+    border: 1px solid #333;
+    padding: 8px;
+    text-align: left;
+}
+
+th {
+    background-color: #1e1e1e;
+}
+
+.green {
+    color: #4caf50;
+}
+
+.red {
+    color: #f44336;
+}
+
+.green-bg {
+    background-color: #d4edda;
+    color: #155724;
+    padding: 10px;
+    margin: 10px 0;
+}
+
+.red-bg {
+    background-color: #f8d7da;
+    color: #721c24;
+    padding: 10px;
+    margin: 10px 0;
+}
+
+.relay-graph {
+    display: flex;
+}
+
+.ip-info {
+    flex: 1;
+    margin-right: 20px;
+    background-color: #1e1e1e;
+    padding: 10px;
+}
+
+.bar-container {
+    flex: 3;
+    background-color: #1e1e1e;
+    padding: 10px;
+}
+
+.bar {
+    display: flex;
+    height: 20px;
+    background-color: #333;
+}
+
+.bar-segment {
+    height: 100%;
+    background-color: #ff9800;
+}
