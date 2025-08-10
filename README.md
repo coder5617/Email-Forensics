@@ -1,4 +1,4 @@
-# EmailForensics
+# Email-Forensics
 
 A powerful web-based tool for analyzing email headers to verify authentication, track delivery paths, and identify potential security issues. 
 ## Features
