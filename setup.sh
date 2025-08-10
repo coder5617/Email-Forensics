@@ -1,5 +1,5 @@
 #!/bin/bash
-PROJECT_DIR="email-header-analyzer"
+PROJECT_DIR="MailForensics"
 mkdir -p $PROJECT_DIR
 cd $PROJECT_DIR
 touch app.py

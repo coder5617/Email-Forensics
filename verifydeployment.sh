@@ -1,5 +1,5 @@
 #!/bin/bash
-PROJECT_DIR="email-header-analyzer"
+PROJECT_DIR="MailForensics"
 if [ ! -d "$PROJECT_DIR" ]; then
   echo "Project directory $PROJECT_DIR not found."
   exit 1
