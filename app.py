@@ -43,6 +43,67 @@ def is_blacklisted(ip):
     except:
         return False
 
+def parse_latency_header(latency_header):
+    """Parse X-MS-Exchange-Transport-EndToEndLatency header to extract total seconds"""
+    if not latency_header:
+        return None
+    
+    try:
+        # Remove any extra whitespace for easier parsing
+        latency_str = latency_header.strip()
+        
+        # Parse different time formats that might appear in the header
+        # Format examples: "00:00:45.123", "00:00:03.3666246", "45.123", etc.
+        
+        # Check for HH:MM:SS.fractional format (most common for Exchange)
+        time_match = re.search(r'(\d{1,2}):(\d{2}):(\d{2})(?:\.(\d+))?', latency_str)
+        if time_match:
+            hours = int(time_match.group(1))
+            minutes = int(time_match.group(2))
+            seconds = int(time_match.group(3))
+            fractional_part = time_match.group(4) or '0'
+            
+            # Convert fractional part to decimal (e.g., "3666246" -> 0.3666246)
+            fractional_value = int(fractional_part) / (10 ** len(fractional_part)) if fractional_part else 0
+            
+            total_seconds = hours * 3600 + minutes * 60 + seconds + fractional_value
+            return total_seconds
+        
+        # Check for MM:SS.fractional format
+        time_match = re.search(r'(\d{1,2}):(\d{2})(?:\.(\d+))?', latency_str)
+        if time_match:
+            minutes = int(time_match.group(1))
+            seconds = int(time_match.group(2))
+            fractional_part = time_match.group(3) or '0'
+            
+            # Convert fractional part to decimal
+            fractional_value = int(fractional_part) / (10 ** len(fractional_part)) if fractional_part else 0
+            
+            total_seconds = minutes * 60 + seconds + fractional_value
+            return total_seconds
+        
+        # Check for seconds with decimal (SS.fractional)
+        seconds_match = re.search(r'(\d+)\.(\d+)', latency_str)
+        if seconds_match:
+            seconds = int(seconds_match.group(1))
+            fractional_part = seconds_match.group(2)
+            # Convert fractional part to decimal
+            fractional_value = int(fractional_part) / (10 ** len(fractional_part))
+            return seconds + fractional_value
+        
+        # Check for pure seconds (integer)
+        seconds_match = re.search(r'(\d+)', latency_str)
+        if seconds_match:
+            seconds = int(seconds_match.group(1))
+            # If the number is very large, it might be milliseconds
+            if seconds > 3600:  # More than 1 hour in seconds, likely milliseconds
+                return seconds / 1000.0
+            return float(seconds)
+        
+        return None
+    except (ValueError, AttributeError) as e:
+        return None
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
     if request.method == 'POST':
@@ -147,19 +208,29 @@ def index():
                 r['hop'] = idx  # Reassign hop numbers after reversal
 
         # Calculate delays using datetime objects (preserves timezone awareness and accuracy)
-        total_delay = 0
+        calculated_delay = 0
         for i in range(1, len(relays)):
             if relays[i-1]['time_dt'] and relays[i]['time_dt']:
                 delta = (relays[i]['time_dt'] - relays[i-1]['time_dt']).total_seconds()
                 relays[i]['delay'] = max(delta, 0)  # Set to 0 if negative (clock skew)
-                total_delay += relays[i]['delay']
+                calculated_delay += relays[i]['delay']
 
         # Ensure at least one relay has a non-zero delay for visualization
-        if total_delay == 0 and relays:
+        if calculated_delay == 0 and relays:
             # If all delays are 0, set a minimal delay for visualization purposes
             for relay in relays:
                 relay['delay'] = 0.1  # Minimal delay for visualization
-            total_delay = len(relays) * 0.1
+            calculated_delay = len(relays) * 0.1
+
+        # Extract end-to-end latency from X-MS-Exchange-Transport-EndToEndLatency header
+        end_to_end_latency_header = msg.get('X-MS-Exchange-Transport-EndToEndLatency', '')
+        accurate_total_delay = parse_latency_header(end_to_end_latency_header)
+        
+        # Use the accurate delay if available, otherwise fall back to calculated delay
+        total_delay = accurate_total_delay if accurate_total_delay is not None else calculated_delay
+        
+        # Add metadata about which method was used
+        delay_source = 'X-MS-Exchange-Transport-EndToEndLatency' if accurate_total_delay is not None else 'Calculated from Received headers'
 
         # Sender IP extraction with improved regex to handle "sender IP is" or "client-ip="
         sender_ip = None
@@ -203,10 +274,12 @@ def index():
                                dmarc_status=dmarc_status, 
                                relays=relays, 
                                total_delay=total_delay, 
+                               delay_source=delay_source,
                                ip_info=ip_info, 
                                sender_ip=sender_ip,
                                spf_info=spf_info, 
-                               auth_results=auth_results)
+                               auth_results=auth_results,
+                               end_to_end_latency_header=end_to_end_latency_header)
 
     return render_template('index.html')
 

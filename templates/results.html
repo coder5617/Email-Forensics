@@ -56,11 +56,20 @@
                     </tr>
                     <tr>
                         <td><strong>Total Delivery Time</strong></td>
-                        <td class="status-cell">-</td>
-                        <td><strong>{{ "%.2f"|format(total_delay) }} seconds</strong></td>
+                        <td class="status-cell">{{ delay_source }}</td>
+                        <td><strong>{{ "%.3f"|format(total_delay) }} seconds</strong></td>
                     </tr>
                 </tbody>
             </table>
+            
+            <!-- Show X-MS-Exchange-Transport-EndToEndLatency header if available -->
+            {% if end_to_end_latency_header %}
+            <div class="info-box green-bg" style="margin-top: 10px;">
+                <strong>X-MS-Exchange-Transport-EndToEndLatency:</strong><br>
+                {{ end_to_end_latency_header }}
+                <br><small><em>This header provides the accurate end-to-end delivery time as measured by Exchange servers.</em></small>
+            </div>
+            {% endif %}
         </div>
 
         <!-- IP Information Section -->
