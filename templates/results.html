@@ -2,54 +2,140 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Header Analyzed</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Header Analysis Results</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body>
+<body class="dark-mode">
+    <!-- Theme Toggle Button -->
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+        <span id="theme-icon">☀️</span>
+    </button>
+    
     <div class="container">
-        <h1>Header Analyzed</h1>
-
-        <h2>Delivery Information</h2>
-        <ul>
-            <li>DMARC Compliant: {% if dmarc_compliant %}<span class="green">✅</span>{% else %}<span class="red">❌</span>{% endif %}</li>
-            <li>SPF Alignment: {% if spf_aligned %}<span class="green">✅</span>{% else %}<span class="red">❌</span>{% endif %}</li>
-            <li>SPF Authenticated: {% if spf_authenticated %}<span class="green">✅</span>{% else %}<span class="red">❌</span>{% endif %}</li>
-            <li>DKIM Alignment: {% if dkim_aligned %}<span class="green">✅</span>{% else %}<span class="red">❌</span>{% endif %}</li>
-            <li>DKIM Authenticated: {% if dkim_authenticated %}<span class="green">✅</span>{% else %}<span class="red">❌</span>{% endif %}</li>
-        </ul>
-
-        <h2>Relay Information</h2>
-        <p>Received: {{ total_delay }} seconds</p>
-
-        <div class="relay-graph">
-            <div class="ip-info">
-                {% if sender_ip %}
-                <h3>Sender IP Info ({{ sender_ip }})</h3>
-                {% if 'error' in ip_info %}
-                <p>{{ ip_info.error }} {% if 'status' in ip_info %}(status: {{ ip_info.status }}){% endif %}</p>
-                {% else %}
-                <ul>
-                    {% for key, value in ip_info.items() %}
-                    <li>{{ key }}: {{ value }}</li>
-                    {% endfor %}
-                </ul>
-                {% endif %}
-                {% else %}
-                <p>No valid sender IP found.</p>
-                {% endif %}
-            </div>
-            <div class="bar-container">
-                <div class="bar">
-                    {% set max_delay = relays|map(attribute='delay')|max %}
-                    {% for relay in relays|reverse %}
-                    <div class="bar-segment" style="width: {{ (relay.delay / max_delay * 100) if max_delay > 0 else 0 }}%;"
-                         title="Hop {{ relay.hop }}: {{ relay.delay }}s"></div>
-                    {% endfor %}
-                </div>
-            </div>
+        <h1>Email Header Analysis Results</h1>
+        
+        <!-- Delivery Information Section (At Top) -->
+        <div class="delivery-section">
+            <h2>📧 Delivery Information</h2>
+            
+            <!-- Compact table for delivery status -->
+            <table class="compact-table">
+                <thead>
+                    <tr>
+                        <th>Authentication Check</th>
+                        <th>Status</th>
+                        <th>Result</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>DMARC Compliance</td>
+                        <td class="status-cell">{{ dmarc_status|upper }}</td>
+                        <td>{% if dmarc_compliant %}<span class="green">✅ Pass</span>{% else %}<span class="red">❌ Fail</span>{% endif %}</td>
+                    </tr>
+                    <tr>
+                        <td>SPF Alignment</td>
+                        <td class="status-cell">-</td>
+                        <td>{% if spf_aligned %}<span class="green">✅ Aligned</span>{% else %}<span class="red">❌ Not Aligned</span>{% endif %}</td>
+                    </tr>
+                    <tr>
+                        <td>SPF Authentication</td>
+                        <td class="status-cell">{{ spf_status|upper }}</td>
+                        <td>{% if spf_authenticated %}<span class="green">✅ Pass</span>{% else %}<span class="red">❌ Fail</span>{% endif %}</td>
+                    </tr>
+                    <tr>
+                        <td>DKIM Alignment</td>
+                        <td class="status-cell">-</td>
+                        <td>{% if dkim_aligned %}<span class="green">✅ Aligned</span>{% else %}<span class="red">❌ Not Aligned</span>{% endif %}</td>
+                    </tr>
+                    <tr>
+                        <td>DKIM Authentication</td>
+                        <td class="status-cell">{{ dkim_status|upper }}</td>
+                        <td>{% if dkim_authenticated %}<span class="green">✅ Pass</span>{% else %}<span class="red">❌ Fail</span>{% endif %}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Total Delivery Time</strong></td>
+                        <td class="status-cell">-</td>
+                        <td><strong>{{ "%.2f"|format(total_delay) }} seconds</strong></td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
 
-        <table>
+        <!-- IP Information Section -->
+        {% if sender_ip %}
+        <div class="delivery-section">
+            <h2>🌐 Sender IP Information</h2>
+            
+            <table class="compact-table">
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Value</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>IP Address</strong></td>
+                        <td>{{ sender_ip }}</td>
+                    </tr>
+                    {% if 'error' not in ip_info %}
+                        {% if ip_info.get('hostname') %}
+                        <tr>
+                            <td>Hostname</td>
+                            <td>{{ ip_info.hostname }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if ip_info.get('city') %}
+                        <tr>
+                            <td>City</td>
+                            <td>{{ ip_info.city }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if ip_info.get('region') %}
+                        <tr>
+                            <td>Region</td>
+                            <td>{{ ip_info.region }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if ip_info.get('country') %}
+                        <tr>
+                            <td>Country</td>
+                            <td>{{ ip_info.country }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if ip_info.get('org') %}
+                        <tr>
+                            <td>Organization</td>
+                            <td>{{ ip_info.org }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if ip_info.get('postal') %}
+                        <tr>
+                            <td>Postal Code</td>
+                            <td>{{ ip_info.postal }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if ip_info.get('timezone') %}
+                        <tr>
+                            <td>Timezone</td>
+                            <td>{{ ip_info.timezone }}</td>
+                        </tr>
+                        {% endif %}
+                    {% else %}
+                        <tr>
+                            <td colspan="2">{{ ip_info.error }} {% if 'status' in ip_info %}(status: {{ ip_info.status }}){% endif %}</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+
+        <!-- Relay Details Table -->
+        <h2>🔄 Relay Details</h2>
+        <table id="relay-table">
             <thead>
                 <tr>
                     <th>Hop</th>
@@ -63,31 +149,51 @@
             </thead>
             <tbody>
                 {% for relay in relays %}
-                <tr>
-                    <td>{{ relay.hop }}</td>
-                    <td>{{ relay.delay }}s</td>
-                    <td>{{ relay.from }}</td>
-                    <td>{{ relay.by }}</td>
+                <tr id="hop-row-{{ relay.hop }}">
+                    <td><strong>{{ relay.hop }}</strong></td>
+                    <td>{{ '%.2f'|format(relay.delay) }}s</td>
+                    <td title="{{ relay.from }}">{{ relay.from[:50] }}{% if relay.from|length > 50 %}...{% endif %}</td>
+                    <td title="{{ relay.by }}">{{ relay.by[:30] }}{% if relay.by|length > 30 %}...{% endif %}</td>
                     <td>{{ relay.with }}</td>
                     <td>{{ relay.time }}</td>
-                    <td>{% if relay.blacklist %}<span class="green">✅</span>{% else %}<span class="red">❌</span>{% endif %}</td>
+                    <td>
+                        {% if relay.blacklist %}
+                            <span class="green" title="Not blacklisted">✅</span>
+                        {% else %}
+                            <span class="red" title="Blacklisted or no IP">❌</span>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
 
-        <h2>SPF and DKIM Information</h2>
+        <!-- SPF and DKIM Information -->
+        <h2>🔐 Authentication Details</h2>
+        
         {% if dmarc_txt %}
-        <div class="info-box {% if dmarc_status == 'pass' %}green-bg{% else %}red-bg{% endif %}">{{ dmarc_txt }}</div>
+        <div class="info-box {% if dmarc_status == 'pass' %}green-bg{% else %}red-bg{% endif %}">
+            <strong>DMARC Record:</strong><br>
+            {{ dmarc_txt }}
+        </div>
         {% endif %}
+        
         {% if spf_txt %}
-        <div class="info-box {% if spf_status == 'pass' %}green-bg{% else %}red-bg{% endif %}">{{ spf_txt }}</div>
+        <div class="info-box {% if spf_status == 'pass' %}green-bg{% else %}red-bg{% endif %}">
+            <strong>SPF Record:</strong><br>
+            {{ spf_txt }}
+        </div>
         {% endif %}
-        {% if dkim_status != 'pass' %}
-        <div class="info-box red-bg">DKIM Signature Error: {{ dkim_info }}</div>
+        
+        {% if dkim_status != 'pass' and dkim_info %}
+        <div class="info-box red-bg">
+            <strong>DKIM Status:</strong><br>
+            {{ dkim_info }}
+        </div>
         {% endif %}
 
-        <h2>Headers Found</h2>
+        <!-- All Headers -->
+        <h2>📋 All Headers Found</h2>
         <table>
             <thead>
                 <tr>
@@ -98,12 +204,52 @@
             <tbody>
                 {% for name, value in headers_found.items() %}
                 <tr>
-                    <td>{{ name }}</td>
-                    <td>{{ value }}</td>
+                    <td><strong>{{ name }}</strong></td>
+                    <td style="word-break: break-all; font-family: 'Courier New', monospace; font-size: 12px;">
+                        {{ value[:500] }}{% if value|length > 500 %}... <em>(truncated)</em>{% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+
+        <!-- Back Button -->
+        <div style="margin: 40px 0; text-align: center;">
+            <a href="/" style="background-color: var(--accent-orange); color: #000; padding: 12px 30px; 
+                              text-decoration: none; border-radius: 25px; font-weight: bold; 
+                              display: inline-block;">Analyze Another Header</a>
+        </div>
     </div>
+
+    <script>
+        // Theme toggle functionality
+        function toggleTheme() {
+            const body = document.body;
+            const themeIcon = document.getElementById('theme-icon');
+            
+            if (body.classList.contains('dark-mode')) {
+                body.classList.remove('dark-mode');
+                body.classList.add('light-mode');
+                themeIcon.textContent = '🌙';
+                localStorage.setItem('theme', 'light');
+            } else {
+                body.classList.remove('light-mode');
+                body.classList.add('dark-mode');
+                themeIcon.textContent = '☀️';
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+        
+        // Load saved theme on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            const body = document.body;
+            const themeIcon = document.getElementById('theme-icon');
+            
+            body.classList.remove('dark-mode', 'light-mode');
+            body.classList.add(savedTheme + '-mode');
+            themeIcon.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+        });
+    </script>
 </body>
 </html>

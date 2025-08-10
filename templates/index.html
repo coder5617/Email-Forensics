@@ -2,17 +2,67 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Email Header Analyzer</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body>
+<body class="dark-mode">
+    <!-- Theme Toggle Button -->
+    <button class="theme-toggle" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+        <span id="theme-icon">☀️</span>
+    </button>
+    
     <div class="container">
         <h1>Email Header Analyzer</h1>
+        <p>Analyze email headers to check authentication, track delivery paths, and identify potential security issues.</p>
+        
         <form method="post">
-            <label for="header">Paste Header:</label><br>
-            <textarea id="header" name="header" rows="10" cols="100"></textarea><br>
+            <label for="header">Paste Email Header:</label><br>
+            <textarea id="header" name="header" rows="12" cols="100" 
+                      placeholder="Paste your complete email header here..." required></textarea><br>
             <input type="submit" value="Analyze Header">
         </form>
+        
+        <div class="instructions-box">
+            <h3>How to get email headers:</h3>
+            <ul>
+                <li><strong>Gmail:</strong> Open email → More (3 dots) → Show original</li>
+                <li><strong>Outlook:</strong> Open email → File → Properties → Internet headers</li>
+                <li><strong>Yahoo:</strong> Open email → More → View raw message</li>
+                <li><strong>Apple Mail:</strong> View → Message → All Headers</li>
+            </ul>
+        </div>
     </div>
+
+    <script>
+        // Theme toggle functionality
+        function toggleTheme() {
+            const body = document.body;
+            const themeIcon = document.getElementById('theme-icon');
+            
+            if (body.classList.contains('dark-mode')) {
+                body.classList.remove('dark-mode');
+                body.classList.add('light-mode');
+                themeIcon.textContent = '🌙';
+                localStorage.setItem('theme', 'light');
+            } else {
+                body.classList.remove('light-mode');
+                body.classList.add('dark-mode');
+                themeIcon.textContent = '☀️';
+                localStorage.setItem('theme', 'dark');
+            }
+        }
+        
+        // Load saved theme on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            const body = document.body;
+            const themeIcon = document.getElementById('theme-icon');
+            
+            body.classList.remove('dark-mode', 'light-mode');
+            body.classList.add(savedTheme + '-mode');
+            themeIcon.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+        });
+    </script>
 </body>
 </html>

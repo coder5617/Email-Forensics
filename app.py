@@ -11,6 +11,7 @@ import ipaddress  # Added for IP validation
 app = Flask(__name__)
 
 def is_valid_ip(ip):
+    """Validate if string is a valid IP address"""
     try:
         ipaddress.ip_address(ip)
         return True
@@ -18,6 +19,7 @@ def is_valid_ip(ip):
         return False
 
 def is_private_ip(ip):
+    """Check if IP is private or loopback"""
     if not ip:
         return True
     try:
@@ -27,6 +29,7 @@ def is_private_ip(ip):
         return True
 
 def is_blacklisted(ip):
+    """Check if IP is blacklisted on Spamhaus"""
     if not ip or is_private_ip(ip):
         return False
     try:
@@ -55,7 +58,7 @@ def index():
         return_path = msg.get('Return-Path', '')
         rp_domain = email.utils.parseaddr(return_path)[1].split('@')[-1] if return_path else ''
 
-        # Alignment
+        # Alignment checks
         spf_aligned = from_domain == rp_domain if rp_domain else False
         dkim_signature = msg.get('DKIM-Signature', '')
         dkim_aligned = False
@@ -65,7 +68,7 @@ def index():
                 d_domain = d_match.group(1)
                 dkim_aligned = from_domain == d_domain
 
-        # Authentication results
+        # Authentication results parsing
         auth_results = msg.get('Authentication-Results', '')
         spf_result = re.search(r'spf=([a-zA-Z]+)', auth_results)
         spf_status = spf_result.group(1) if spf_result else 'none'
@@ -80,7 +83,7 @@ def index():
         # Extract SPF info from auth (detailed)
         spf_info = re.search(r'spf=[^;]+(?:;[^;]+)*', auth_results).group(0) if re.search(r'spf=[^;]+(?:;[^;]+)*', auth_results) else ''
 
-        # DNS lookups
+        # DNS lookups for authentication records
         dmarc_txt = ''
         try:
             dmarc_txt = dns.resolver.resolve(f'_dmarc.{from_domain}', 'TXT')[0].strings[0].decode('utf-8')
@@ -103,7 +106,7 @@ def index():
         else:
             dkim_info = 'No aligned DKIM-Signature for the message to be considered aligned.'
 
-        # Relays
+        # Process relay information
         received_list = msg.get_all('Received', [])
         relays = []
         for idx, rec in enumerate(reversed(received_list), 1):
@@ -118,9 +121,7 @@ def index():
             time_dt = email.utils.parsedate_to_datetime(time_str) if time_str else None
 
             # Improved IP extraction using better regex for IPv4 and IPv6
-            # Updated IPv4 pattern for precision
             ipv4_pattern = r'(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)'
-            # Updated IPv6 pattern: removed embedded (?i), fixed space typo, used standard pattern with A-F included
             ipv6_pattern = r'(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:((:[0-9a-fA-F]{1,4}){1,6})|:((:[0-9a-fA-F]{1,4}){1,7}|:)|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9])\.){3,3}(25[0-5]|(2[0-4]|1{0,1}[0-9]){0,1}[0-9]))'
             pattern = r'\[?(' + ipv4_pattern + r'|' + ipv6_pattern + r')\]?'
             ips = re.findall(pattern, from_part)
@@ -153,6 +154,13 @@ def index():
                 relays[i]['delay'] = max(delta, 0)  # Set to 0 if negative (clock skew)
                 total_delay += relays[i]['delay']
 
+        # Ensure at least one relay has a non-zero delay for visualization
+        if total_delay == 0 and relays:
+            # If all delays are 0, set a minimal delay for visualization purposes
+            for relay in relays:
+                relay['delay'] = 0.1  # Minimal delay for visualization
+            total_delay = len(relays) * 0.1
+
         # Sender IP extraction with improved regex to handle "sender IP is" or "client-ip="
         sender_ip = None
         ip_match = re.search(r'(?:sender\s*ip\s*is|client-ip=)\s*([\[\(]?[\d\.:a-fA-F]+[\]\)]?)', auth_results, re.IGNORECASE)
@@ -166,24 +174,41 @@ def index():
                     sender_ip = relay['ip']
                     break
 
+        # Get IP information from IPInfo API
         ip_info = {}
         if sender_ip:
             try:
-                response = requests.get(f'https://ipinfo.io/{sender_ip}/json')
+                response = requests.get(f'https://ipinfo.io/{sender_ip}/json', timeout=5)
                 if response.ok:
                     ip_info = response.json()
                 else:
                     ip_info = {'error': 'Unable to fetch IP info', 'status': response.status_code}
-            except:
-                ip_info = {'error': 'Request failed'}
+            except requests.exceptions.Timeout:
+                ip_info = {'error': 'Request timed out'}
+            except Exception as e:
+                ip_info = {'error': f'Request failed: {str(e)}'}
 
-        return render_template('results.html', headers_found=headers_found, dmarc_compliant=dmarc_compliant, spf_aligned=spf_aligned,
-                               spf_authenticated=spf_authenticated, dkim_aligned=dkim_aligned, dkim_authenticated=dkim_authenticated,
-                               dmarc_txt=dmarc_txt, spf_txt=spf_txt, dkim_info=dkim_info, spf_status=spf_status, dkim_status=dkim_status,
-                               dmarc_status=dmarc_status, relays=relays, total_delay=total_delay, ip_info=ip_info, sender_ip=sender_ip,
-                               spf_info=spf_info, auth_results=auth_results)
+        return render_template('results.html', 
+                               headers_found=headers_found, 
+                               dmarc_compliant=dmarc_compliant, 
+                               spf_aligned=spf_aligned,
+                               spf_authenticated=spf_authenticated, 
+                               dkim_aligned=dkim_aligned, 
+                               dkim_authenticated=dkim_authenticated,
+                               dmarc_txt=dmarc_txt, 
+                               spf_txt=spf_txt, 
+                               dkim_info=dkim_info, 
+                               spf_status=spf_status, 
+                               dkim_status=dkim_status,
+                               dmarc_status=dmarc_status, 
+                               relays=relays, 
+                               total_delay=total_delay, 
+                               ip_info=ip_info, 
+                               sender_ip=sender_ip,
+                               spf_info=spf_info, 
+                               auth_results=auth_results)
 
     return render_template('index.html')
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0', port=5000)
