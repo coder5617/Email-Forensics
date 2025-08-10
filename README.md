@@ -10,7 +10,7 @@ A powerful web-based tool for analyzing email headers to verify authentication, 
 - **DKIM Verification** - Validates DomainKeys Identified Mail signatures
 - **Real-time DNS Lookups** - Fetches current DMARC, SPF, and DKIM records
 
-### 📊 Delivery Path Visualization
+### 📊 Delivery Path Analysis
 
 - **Relay Details Table** - Comprehensive information about each hop in the delivery chain
 - **Timing Analysis** - Calculates and displays delays between each relay server
@@ -21,14 +21,6 @@ A powerful web-based tool for analyzing email headers to verify authentication, 
 - **Sender IP Detection** - Automatically identifies the originating sender's IP address
 - **Geolocation Data** - Provides location, ISP, and organization information via IPInfo API
 - **Private IP Filtering** - Identifies and handles private/internal IP addresses appropriately
-
-### 🎨 Modern UI/UX
-
-- **Dark/Light Mode Toggle** - Persistent theme selection with smooth transitions
-- **Responsive Design** - Works seamlessly on desktop, tablet, and mobile devices
-- **Rounded Modern Interface** - Clean, contemporary design with smooth corners
-- **Excel-like Compact Tables** - Efficient data presentation in a familiar format
-- **Color-coded Status Indicators** - Quick visual feedback for authentication results
 
 ## Technology Stack
 
@@ -52,7 +44,7 @@ A powerful web-based tool for analyzing email headers to verify authentication, 
 1. Clone the repository:
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/coder5617/Email-Forensics.git
 cd email-header-analyzer
 ```
 
