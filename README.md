@@ -138,7 +138,7 @@ python app.py
 ## Project Structure
 
 ```
-email-header-analyzer/
+Email-Forensics/
 ├── app.py                 # Main Flask application
 ├── requirements.txt       # Python dependencies
 ├── Dockerfile            # Docker container configuration
