@@ -45,7 +45,7 @@ A powerful web-based tool for analyzing email headers to verify authentication, 
 
 ```bash
 git clone https://github.com/coder5617/Email-Forensics.git
-cd email-header-analyzer
+cd Email-Forensics
 ```
 
 2. Build and run with Docker Compose:
